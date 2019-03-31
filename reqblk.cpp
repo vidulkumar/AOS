@@ -18,7 +18,7 @@ void readandLock(int &blk_Num,int &reqForm,int bn)
 
 }
 
-void setFree(int &blk_Num,int &reqForm,int d ,int bn)
+void setFree(int &blk_Num,int &reqForm,int bn)
 {
   blk_Num = bn;
   reqForm = 1;
@@ -42,11 +42,8 @@ void  writeToDisk(int &data,int &blk_Num,int &reqForm,int d ,int bn)
 
 
 int main() {
-   int num;
-   int req;
-   int state;
-   int blockNumber=21;
-   int dataInBlock=11;
+   
+   int blockNumber,ch,dat;
    int fd = -1;
   while (fd == -1) {
     fd = shm_open(NAME, O_RDWR, 0666);
@@ -64,34 +61,79 @@ int main() {
 
   printf("worker: waiting initial data\n");
 //
-for(int i=0;i<5;i++)
-{ sleep(1);
-  while (atomic_load(&data->state) != 5) {};
-     atomic_store(&data->state, PROCNUM);
-    printf("worker: acquire initial data\n");
 
+  do{
+
+  cout<<"get a block : ";
+  cout<<"Enter Block Number : ";
+  cin>>blockNumber;
+    while (atomic_load(&data->state) != PROCNUM) {};//wait for turn
+    atomic_store(&data->state, PROCNUM); //acquire block
+    printf("Block acquired\n");
+    readandLock(data->blk_Num,data->reqForm,blockNumber); // messege Written
    
-    printf("worker: update data\n");
-    blockNumber=i;
-    readandLock(data->blk_Num,data->reqForm,blockNumber);  //request sent
-    req=data->reqForm;
-    atomic_store(&data->state, PROCNUM+6);
-    dataInBlock=41;
-    
+   atomic_store(&data->state, PROCNUM+8); //Messege Sent block released
+  while (atomic_load(&data->state) != PROCNUM) {} //Wait for reply
+    atomic_store(&data->state, PROCNUM); //acquire block
+    dat = data->data;
+   cout<<"Data in block is :"<<dat;
+    atomic_store(&data->state, PROCNUM+4); //release block
 
-  while (atomic_load(&data->state) != PROCNUM) {} //data recieved
-    atomic_store(&data->state, 0);
+   cout<<"-----Menu----";
+   cout<<"1. set this block free :";
+   cout<<"2. update this block set free :";
+   cout<<"3. write this block to disk and set free :";
+   cout<<"4. display buffer....";
+   cout<<"5. exit ...";
+   cout<<"6. kill getblock ....";
    
-    dataInBlock = data->data;
+   cin>>ch;
+   
+    switch(ch)
+    {
+
+        case 1:     while (atomic_load(&data->state) != PROCNUM) {};//wait for turn
+                    atomic_store(&data->state, PROCNUM); //acquire block
+                    printf("Block acquired\n");
+                    setFree(data->blk_Num,data->reqForm,blockNumber);// messege Written 
+                    atomic_store(&data->state, PROCNUM+8); //Messege Sent block released
+                    break;
+        
+        case 2:     cout<< "Enter data: ";
+                    cin>>dat;
+                    while (atomic_load(&data->state) != PROCNUM) {};//wait for turn
+                    atomic_store(&data->state, PROCNUM); //acquire block
+                    printf("Block acquired\n");
+                    updateAndSetFree(data->data,data->blk_Num,data->reqForm,dat,blockNumber);// messege Written 
+                    atomic_store(&data->state, PROCNUM+8); //Messege Sent block released
+                    break;
+
+        case 3:     cout<< "Enter data: ";
+                    cin>>dat;
+                    while (atomic_load(&data->state) != PROCNUM) {};//wait for turn
+                    atomic_store(&data->state, PROCNUM); //acquire block
+                    printf("Block acquired\n");
+                    writeToDisk(data->data,data->blk_Num,data->reqForm,dat,blockNumber);// messege Written 
+                    atomic_store(&data->state, PROCNUM+8); //Messege Sent block released
+                    break;
+               
+        case 4:     while (atomic_load(&data->state) != PROCNUM) {};//wait for turn
+                    atomic_store(&data->state, PROCNUM);
+                    atomic_store(&data->state, 101);
+                   break;     
+        case 5:    ch =5;
+                   break;
+        case 6:    while (atomic_load(&data->state) != PROCNUM) {};//wait for turn
+                    atomic_store(&data->state, PROCNUM);
+                    atomic_store(&data->state, 100);
+                    ch=4;
+                   break;
 
 
-    //updateAndSetFree(data->data,data->blk_Num,data->reqForm,dataInBlock,blockNumber);
-    if(req==0)
-    atomic_store(&data->state, 5);
-    else
-    atomic_store(&data->state, PROCNUM+6);
+    }
 
- } 
+  
+   }while (ch<5);
 
 
  // printf("worker: release updated data\n");
@@ -104,3 +146,88 @@ for(int i=0;i<5;i++)
 
   return EXIT_SUCCESS;
 }
+
+
+/*
+void menu()
+{ 
+  
+
+  do{
+
+  cout<<"get a block : ";
+  cout<<"Enter Block Number : "
+  cin>>blockNumber;
+    while (atomic_load(&data->state) != PROCNUM+4) {};//wait for turn
+    atomic_store(&data->state, PROCNUM); //acquire block
+    printf("Block acquired\n");
+    readandLock(data->blk_Num,data->reqForm,blockNumber); // messege Written
+   
+   atomic_store(&data->state, PROCNUM+8); //Messege Sent block released
+  while (atomic_load(&data->state) != PROCNUM) {} //Wait for reply
+    atomic_store(&data->state, 0); //acquire block
+    dat = data->data;
+   cout<<"Data in block is :"<<dat;
+    atomic_store(&data->state, PROCNUM+5); //release block
+
+   cout<<"-----Menu----";
+   cout<<"1. set this block free :";
+   cout<<"2. update this block set free :";
+   cout<<"3. write this block to disk and set free :";
+   cout<<"4. exit ...";
+   cout<<"5. kill getblock ....";
+   cin>>ch;
+   
+    switch(ch)
+    {
+
+        case 1:     while (atomic_load(&data->state) != PROCNUM+4) {};//wait for turn
+                    atomic_store(&data->state, PROCNUM); //acquire block
+                    printf("Block acquired\n");
+                    setFree(data->blk_Num,data->reqForm,blockNumber);// messege Written 
+                    atomic_store(&data->state, PROCNUM+8); //Messege Sent block released
+                    break;
+        
+        case 2:     cout<< "Enter data: ";
+                    cin>dat;
+                    while (atomic_load(&data->state) != PROCNUM+4) {};//wait for turn
+                    atomic_store(&data->state, PROCNUM); //acquire block
+                    printf("Block acquired\n");
+                    updateAndSetFree(data->data,data->blk_Num,data->reqForm,dat,blockNumber);// messege Written 
+                    atomic_store(&data->state, PROCNUM+8); //Messege Sent block released
+                    break;
+
+        case 3:     cout<< "Enter data: ";
+                    cin>dat;
+                    while (atomic_load(&data->state) != PROCNUM+4) {};//wait for turn
+                    atomic_store(&data->state, PROCNUM); //acquire block
+                    printf("Block acquired\n");
+                    writeToDisk(data->data,data->blk_Num,data->reqForm,dat,blockNumber);// messege Written 
+                    atomic_store(&data->state, PROCNUM+8); //Messege Sent block released
+                    break;
+               
+               
+        case 4:    ch =4;
+                   break;
+        case 5:    while (atomic_load(&data->state) != PROCNUM+4) {};//wait for turn
+                    atomic_store(&data->state, PROCNUM);
+                    atomic_store(&data->state, 100);
+                    ch=4;
+                   break;
+
+
+    }
+
+  
+
+
+
+
+
+   }while (ch<4);
+}
+
+*/
+
+ 
+

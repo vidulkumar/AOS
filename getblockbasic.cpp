@@ -1,26 +1,14 @@
 
-#include "protocolp.h"
 #include <iostream>
-#include <atomic>
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <unistd.h>
 #include<cstdio>
 #include <ctime>    // For time()
 #include<cstdlib>
-
 #define HASHQNUM 4
 #define BUFBLOCKNUM 20
 #define DISKSIZE 50
 using namespace std;
 int d=0;
-
-
-
-
- struct BufferBlock {
+struct BufferBlock {
                       int diskBlockNum;
                       int data;
                       bool isFree;
@@ -52,10 +40,8 @@ class Buffer {
                      BufferBlock* bread(int blockRNum);
                      void  bwrite(BufferBlock* block);
                      bool searchInHq(int qNum,int diskBlkNum);
-                     BufferBlock* searchBlkInHq(int diskBlkNum); 
+                      
                       BufferBlock* getBlock(int blockNum);
-
-                     void actOnRequest( int &data,int &blk_Num,int &reqForm);
 
 };
 
@@ -353,35 +339,6 @@ bool Buffer :: searchInHq(int qNum,int diskBlkNum)
 
 }
 
-BufferBlock* Buffer :: searchBlkInHq(int diskBlkNum)
-{ bool flag=false;
-  int qNum;
-  qNum = diskBlkNum % 4;
-  BufferBlock* temp;
-  temp = hashQueue[qNum];
-  if(temp==NULL)
-  {
-    return temp;
-  }
-      else
-      {
-        while(temp!=NULL)
-        {
-            if(temp->diskBlockNum==diskBlkNum)
-            {
-              return temp;
-            } 
-
-             temp=temp->nextBlock;
-        };
-          //cout<<" ["<<temp->data<<","<<temp->diskBlockNum<<","<<temp->isFree<<"]"<<endl;
-
-      }
-      return temp ;
-
-
-}
-
 
 
  BufferBlock* Buffer :: getBlock(int blockNum)
@@ -393,9 +350,9 @@ BufferBlock* Buffer :: searchBlkInHq(int diskBlkNum)
                           bool bufferFound=false;
                           BufferBlock* temp; //Create a node
                           temp = hashQueue[hashQueueNum];
-                          //cout<<"initialization done in get block \n";
+                          cout<<"initialization done in get block \n";
                     while(!bufferFound)
-                    { // cout<<"Entered Loop\n";
+                    {  cout<<"Entered Loop\n";
                             
 
                           if(freeList!=NULL)
@@ -405,7 +362,7 @@ BufferBlock* Buffer :: searchBlkInHq(int diskBlkNum)
                            
                           if(temp!=NULL)
                           {   // displayQueue(hashQueueNum);
-                              // cout<<" reached chkpt 4:\n"<<temp->diskBlockNum<<" "<<blockNum;
+                               cout<<" reached chkpt 4:\n"<<temp->diskBlockNum<<" "<<blockNum;
                                if(searchInHq(hashQueueNum,blockNum))
                                {
                                  for(;temp->diskBlockNum!=blockNum;temp=temp->nextBlock)
@@ -425,8 +382,8 @@ BufferBlock* Buffer :: searchBlkInHq(int diskBlkNum)
                                 }
 
                           }
-                         // cout<<"Initial checks performed  :"<<blockInHashQueue<<endl;
-                         // cout<<"Block in hashqueue : "<<blockInHashQueue;
+                          cout<<"Initial checks performed  :"<<blockInHashQueue<<endl;
+                          cout<<"Block in hashqueue : "<<blockInHashQueue;
                      // case 1 block is in buffer and free
                      if(blockInHashQueue)
                      {
@@ -437,12 +394,12 @@ BufferBlock* Buffer :: searchBlkInHq(int diskBlkNum)
                              };
                              continue;
                          }
-                       // cout<<"it was here ..";
+                        cout<<"it was here ..";
                          //mark Buffer Busy
                          temp->isFree=false;
                          bufferFound=true;
                          //remove buffer from free List
-                        // cout<<"block to be removed :"<<temp->data<<endl;
+                         cout<<"block to be removed :"<<temp->data<<endl;
                          removeFromFreeList(temp);
                          /*
                          temp->previousInFreeList->nextInFreeList = temp ->nextInFreeList;
@@ -453,7 +410,7 @@ BufferBlock* Buffer :: searchBlkInHq(int diskBlkNum)
                          return temp;
                      }
                      else
-                     {  //cout<<"freeBlockAvailable : "<<freeBlockAvailable<<endl;
+                     {  cout<<"freeBlockAvailable : "<<freeBlockAvailable<<endl;
                          if(!freeBlockAvailable)
                          {
                              while(freeList!=NULL)//Buffer becomes free
@@ -462,7 +419,7 @@ BufferBlock* Buffer :: searchBlkInHq(int diskBlkNum)
                              };
                              continue;
                          }
-                        //cout<<"reached checkpoint 1 \n";
+                        cout<<"reached checkpoint 1 \n";
                          BufferBlock* freeBlock;
                          freeBlock= freeList;
 
@@ -472,7 +429,7 @@ BufferBlock* Buffer :: searchBlkInHq(int diskBlkNum)
                          
 
                          //scenario 3
-                        // cout<<"\nreached to scenario 3:";
+                         cout<<"\nreached to scenario 3:";
                          if(!freeBlock->dataWritten)
                          {
                              //write buffer to disk
@@ -544,118 +501,57 @@ void Buffer :: bwrite(BufferBlock* block)
   
 } 
 
-void Buffer :: actOnRequest( int &data,int &blk_Num,int &reqForm)
-{  BufferBlock *temp;
-   if (reqForm==0)
-       { temp=bread(blk_Num);
-         data = temp->data;
-         blk_Num = temp->diskBlockNum;
-         reqForm = 4;
-       }
-   else if(reqForm == 1)
-   {    temp = searchBlkInHq(blk_Num);
-       if(temp!=NULL)
-       {
-        
-        insertBlock(temp);
-        reqForm = 4;
-       }
-   }
-   else if(reqForm == 2)
-   {
-      temp = searchBlkInHq(blk_Num);
-       if(temp!=NULL)
-       {
-        temp->data = data;
-        insertBlock(temp);
-        reqForm = 4;
-       }
-   }
-   else if(reqForm==3)
-   {
-    temp = searchBlkInHq(blk_Num);
-    temp->data = data;
-    bwrite(temp);
-   }
-
-
-}
-
-
 int main()
 {   cout<<"before declaring buffer";
     Buffer buf;
-    char c;
-    //BufferBlock* temp;
-    //BufferBlock* temp2;
+    BufferBlock* temp;
+    BufferBlock* temp2;
+    //cout<<"\nnumber of free blocks :"<<buf.countFreeBuffer();
     cout<<"\n display buffer : \n";
-    buf.display();
    
+
+    buf.display();
+   // buf.display();
     cout<<"\nnumber of free blocks :"<<buf.countFreeBuffer();
-  
-
-int ctr =0;
-int state=0;
-int req =0;
-bool otherProcessActive = true;
-
-  int fd = shm_open(NAME, O_CREAT |O_EXCL| O_RDWR, 0600);
-  if (fd < 0) {
-    perror("shm_open()");
-    return EXIT_FAILURE;
-  }
-  
-
-  ftruncate(fd, SIZE);
-
-  struct Data *data = (struct Data *)
-  mmap(0, SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-  printf("request: mapped address: %p\n", data);
-
-  
-
-  printf("request: release initial data\n");
-  atomic_store(&data->state, 0);
-while(otherProcessActive)
-{ 
-  printf("request: waiting updated data\n");
-   //sleep(1);
-  while (atomic_load(&data->state) < 4)
-   {   
-     };
- 
-  req= data->reqForm;
-  state=atomic_load(&data->state);
-  buf.actOnRequest(data->data,data->blk_Num,data->reqForm);
+    //buf.InitializeBuffer();
+    //BufferBlock* block;
+    int BNum;
    
-   state =atomic_load(&data->state);
-  if(state==100)
-    {otherProcessActive=false;}
-  else if(state=101)
-      {buf.display(); }
+    cout<<"\n|||"<<freeList->data<<"|||"<<freeListEnd->data;
+   
+    for(int i = 0; i<45; i=i+3) 
+       {  // buf.getBlock(i);
+       //buf.bread(i);
 
-   if (req>0)
-     atomic_store(&data->state, (state-3)%2 );
-   else
-     atomic_store(&data->state, state-8);
-    //cout<<"ctr : "<<ctr<<endl;
-    
-   } ;
+       if(i<5)
+        temp = buf.bread(i);
+       else
+        if(i==21)
+        temp2 = buf.bread(i);
+        else
+        buf.bread(i);       
+             //cout<<"\n display buffer : \n";
+    //buf.display();      
+        }
+  cout<<"\n display buffer before writing: \n";
+    buf.display();
+       temp->data = 23;
+        buf.bwrite(temp);
+       temp2->data = 56;
+        buf.bwrite(temp2);
+   // cout<<"\n display buffer : \n";
+   // buf.display();
 
-  munmap(data, SIZE);
-
-  close(fd);
-
-  shm_unlink(NAME);
-
-
-    cout<<"\n display buffer after reading: \n"; 
-    
+   cout<<"diskblk 12 in hq :"<<buf.searchInHq(0,12);
+    cout<<"\n display buffer after writing: \n";
     buf.display();
 
+    buf.bread(21);
+    cout<<"\n display buffer after reading: \n";
+    buf.display();
+    
     cout<<"\n|||"<<freeList->data<<"|||"<<freeListEnd->data;
-     return EXIT_SUCCESS;
- 
+
 }
 
 
