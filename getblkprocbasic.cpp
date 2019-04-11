@@ -12,7 +12,7 @@
 #include<cstdlib>
 
 #define HASHQNUM 4
-#define BUFBLOCKNUM 20
+#define BUFBLOCKNUM 4
 #define DISKSIZE 50
 using namespace std;
 int d=0;
@@ -25,6 +25,7 @@ int d=0;
                       int data;
                       bool isFree;
                       bool dataWritten;
+               
                       BufferBlock* nextBlock;
                       BufferBlock* previousBlock;
                       BufferBlock* nextInFreeList;
@@ -33,16 +34,14 @@ int d=0;
                         } *freeList, *freeListEnd, *hashQueue[HASHQNUM];
 
 class Buffer {
-                      //BufferBlock = new *hashQueue[HASHQNUM];
-                      //BufferBlock *hashQueue = BufferBlock[HASHQNUM];
-                      //BufferBlock* freeList;
+
                     int *Disk;
 
                   public:
 
                      Buffer();
                      void createDisk();
-                     void insertBlock(BufferBlock* &temp);
+                     void insertBlock(BufferBlock* &temp,int mod);
                      void createBufferBlock();
                      void display();
                      int countFreeBuffer();
@@ -50,7 +49,7 @@ class Buffer {
                      void removeFromHashQueue(BufferBlock* &freeBlock);
                      void displayQueue(int queueNum);
                      BufferBlock* bread(int blockRNum);
-                     void  bwrite(BufferBlock* block);
+                     void  bwrite(BufferBlock* block,int mod);
                      bool searchInHq(int qNum,int diskBlkNum);
                      BufferBlock* searchBlkInHq(int diskBlkNum); 
                       BufferBlock* getBlock(int blockNum);
@@ -102,20 +101,18 @@ void Buffer::createBufferBlock()
     tempBlock->previousBlock      = NULL;
     tempBlock->nextInFreeList     = freeList ;
     tempBlock->previousInFreeList = freeList ;
-    insertBlock(tempBlock);
+    insertBlock(tempBlock,1);
     return ;
 
 }                      
 
 
-void Buffer::insertBlock( BufferBlock* &temp)
+void Buffer::insertBlock( BufferBlock* &temp,int mod=1)
 
 {
 
-
-    //struct BufferBlock *temp;
-
-    //temp = createBufferBlock();
+   // cout<<"executing insertBlock\n";
+ 
 
     if (freeList == freeListEnd && freeList == NULL)
 
@@ -132,7 +129,7 @@ void Buffer::insertBlock( BufferBlock* &temp)
 
     }
 
-    else
+    else if(mod==1)
 
     {
 
@@ -144,7 +141,21 @@ void Buffer::insertBlock( BufferBlock* &temp)
         freeListEnd->nextInFreeList = temp;
 
         freeListEnd=temp;
-         temp->isFree=true;
+        temp->isFree=true;
+        cout<<". ";
+
+    }
+    else  {
+         //cout<<"executing case 2";
+        temp->nextInFreeList = freeList;
+        temp->previousInFreeList = freeListEnd;
+
+        freeList->previousInFreeList =temp;
+
+        freeListEnd->nextInFreeList = temp;
+
+        freeList=temp;
+        temp->isFree=true;
         cout<<". ";
 
     }
@@ -179,6 +190,7 @@ void Buffer::display()
     
     cout<<" ["<<s->data<<","<<s->diskBlockNum<<","<<s->isFree<<"]";
     s=s->nextInFreeList;
+    sleep(1);
    };
 
     cout<<" ["<<s->data<<","<<s->diskBlockNum<<","<<s->isFree<<"]"<<endl;
@@ -228,6 +240,7 @@ void Buffer::displayQueue(int queueNum)
         {
              cout<<" ["<<temp->data<<","<<temp->diskBlockNum<<","<<temp->isFree<<"]";
              temp=temp->nextBlock;
+             sleep(1);
         };
           cout<<" ["<<temp->data<<","<<temp->diskBlockNum<<","<<temp->isFree<<"]"<<endl;
 
@@ -240,7 +253,7 @@ void Buffer::removeFromFreeList(BufferBlock* &freeBlock)
 {
    if(freeList==freeListEnd)
       {
-            cout<<"\nreached to freeblock check 2";
+            //cout<<"\nreached to freeblock check 2";
             freeBlock->nextInFreeList=NULL;
             freeBlock->previousInFreeList=NULL;
             freeList=NULL;
@@ -257,7 +270,7 @@ void Buffer::removeFromFreeList(BufferBlock* &freeBlock)
                          freeBlock->nextInFreeList->previousInFreeList = freeBlock ->previousInFreeList;
                          freeBlock->nextInFreeList=NULL;
                          freeBlock->previousInFreeList=NULL; 
-                         cout<<"removed from freeList1\n";
+                         //cout<<"removed from freeList1\n";
                    }
   else if(freeList==freeBlock)
         {
@@ -267,7 +280,7 @@ void Buffer::removeFromFreeList(BufferBlock* &freeBlock)
                          freeBlock->nextInFreeList->previousInFreeList = freeBlock ->previousInFreeList;
                          freeBlock->nextInFreeList=NULL;
                          freeBlock->previousInFreeList=NULL; 
-                         cout<<"removed from freeList2\n"; 
+                         //cout<<"removed from freeList2\n"; 
 
 
         } 
@@ -278,7 +291,7 @@ void Buffer::removeFromFreeList(BufferBlock* &freeBlock)
                          freeBlock->nextInFreeList->previousInFreeList = freeBlock ->previousInFreeList;
                          freeBlock->nextInFreeList=NULL;
                          freeBlock->previousInFreeList=NULL; 
-                         cout<<"removed from freeList3\n";
+                         //cout<<"removed from freeList3\n";
 
 
         }
@@ -287,15 +300,15 @@ void Buffer::removeFromFreeList(BufferBlock* &freeBlock)
 
 void Buffer::removeFromHashQueue(BufferBlock* &freeBlock)
 { 
-  int num = freeBlock->diskBlockNum;
-
+  int num = freeBlock->diskBlockNum%4;
+  
    if (num==-1)
     return;
    
   if(freeBlock->nextBlock==NULL && freeBlock->previousBlock==NULL)
   { 
-     hashQueue[num]=freeBlock->nextBlock;
-    cout<<"removeFromHashQueue..0";
+     hashQueue[num]=NULL;
+    //cout<<"removeFromHashQueue.. "<<freeBlock->diskBlockNum;
     return;
 
   }
@@ -307,7 +320,7 @@ void Buffer::removeFromHashQueue(BufferBlock* &freeBlock)
                          freeBlock->previousBlock = NULL;
                          freeBlock->nextBlock = NULL ;
                          //bufferFound=true;
-                         cout<<"removeFromHashQueue..1";
+                         cout<<"removedFromHashQueue..";
                          return;
                            }
   else if (freeBlock->previousBlock==NULL) //free block is first in hash queue
@@ -318,7 +331,7 @@ void Buffer::removeFromHashQueue(BufferBlock* &freeBlock)
             freeBlock->previousBlock = NULL;
             freeBlock->nextBlock = NULL ;
             //bufferFound=true;
-            cout<<"removeFromHashQueue..2";
+            cout<<"removeFromHashQueue..";
             return;
       }
    else //freeBlock is last in hashQueue
@@ -329,7 +342,7 @@ void Buffer::removeFromHashQueue(BufferBlock* &freeBlock)
             freeBlock->previousBlock = NULL;
             freeBlock->nextBlock = NULL ;
             //bufferFound=true;
-            cout<<"removeFromHashQueue..3";
+            cout<<"removeFromHashQueue..";
             return;
 
       }
@@ -437,8 +450,8 @@ BufferBlock* Buffer :: searchBlkInHq(int diskBlkNum)
                                 }
 
                           }
-                         cout<<"Initial checks performed  :"<<blockInHashQueue<<endl;
-                          cout<<"Block in hashqueue : "<<blockInHashQueue;
+                          //cout<<"Initial checks performed  :"<<blockInHashQueue<<endl;
+                          cout<<"Block in hashqueue : "<<blockInHashQueue<<endl;
                         //case 1 block is in buffer and free
                      if(blockInHashQueue)
                      {
@@ -454,7 +467,8 @@ BufferBlock* Buffer :: searchBlkInHq(int diskBlkNum)
                          temp->isFree=false;
                          bufferFound=true;
                          //remove buffer from free List
-                        cout<<"block to be removed0 :"<<temp->data<<endl;
+                        //cout<<"block to be removed0 :"<<temp->data<<endl;
+                         cout<<"lock this block\n";
                          removeFromFreeList(temp);
                          /*
                          temp->previousInFreeList->nextInFreeList = temp ->nextInFreeList;
@@ -465,7 +479,7 @@ BufferBlock* Buffer :: searchBlkInHq(int diskBlkNum)
                          return temp;
                      }
                      else
-                     {  cout<<"freeBlockAvailable : "<<freeBlockAvailable<<endl;
+                     {   cout<<"freeBlockAvailable : "<<freeBlockAvailable<<endl;
                          if(!freeBlockAvailable)
                          {  return temp2;
                          /*
@@ -481,22 +495,27 @@ BufferBlock* Buffer :: searchBlkInHq(int diskBlkNum)
 
                          //cout<<"reached checkpoint 1:";
                          //remove First from free list
+
                          removeFromFreeList(freeBlock);
-                         
+                         cout<<"remove a block from free list\n";
 
                          //scenario 3
                         // cout<<"\nreached to scenario 3:";
-                         cout<<"dataWritten: "<<freeBlock->dataWritten<<endl;
+                         //cout<<"dataWritten: "<<freeBlock->dataWritten<<endl;
                          if(freeBlock->dataWritten != true)
                          {
                              //write buffer to disk
-                             bwrite(freeBlock);
+                             cout<<"delayed write case handled \n";
+                             bwrite(freeBlock,2);
+                             //cout<<"after executing delayed write case --";
+                           //  display();
                              continue;
                          }
                          //scenario 3
                          //remove Buffer from Old Hash Queue
+
                          removeFromHashQueue(freeBlock);
-                         
+                         //cout<<"removed from old hashqueue\n";
 
                          bufferFound=true;
 
@@ -520,7 +539,7 @@ BufferBlock* Buffer :: searchBlkInHq(int diskBlkNum)
                              //freeBlock->diskBlockNum=blockNum;
                              freeBlock->isFree=false;
                          }
-                        
+                        cout<<"added to new hash queue \n";
                        return freeBlock;
                      }
 
@@ -549,12 +568,18 @@ BufferBlock* Buffer :: bread(int blockRNum)
    return block;
 }
 
-void Buffer :: bwrite(BufferBlock* block)
-{  cout<<"Entered write ";
+void Buffer :: bwrite(BufferBlock* block,int mod=1)
+{  //cout<<"Entered write ";
    Disk[block->diskBlockNum]=block->data;
    block->dataWritten= true;
+   if(mod==2)
+   {
+    insertBlock(block,2);
+    return;
+   }
+   else{
    insertBlock(block);
-   return;
+   return; }
   
 } 
 
@@ -569,16 +594,16 @@ void Buffer :: actOnRequest( int &data,int &blk_Num,int &reqForm)
          //blk_Num = temp->diskBlockNum;
          //reqForm = 4;
 
-         cout<<"\nread successful";
+         //cout<<"\nread successful";
        }
    else if(reqForm == 1) // 
    {    temp = searchBlkInHq(blk_Num);
        if(temp!=NULL)
        {
-         cout<<"\nEntered set Free----\n";
+         //cout<<"\nEntered set Free----\n";
          temp->dataWritten=true;
         insertBlock(temp);
-        cout<<"\nset free successful";
+        //cout<<"\nset free successful";
         //reqForm = 4;
        }
    }
@@ -590,7 +615,7 @@ void Buffer :: actOnRequest( int &data,int &blk_Num,int &reqForm)
         temp->data = data;
         insertBlock(temp);
 
-        cout<<"\nupdate and set free successful";
+        //cout<<"\nupdate and set free successful";
         //reqForm = 4;
        }
    }
@@ -603,10 +628,10 @@ void Buffer :: actOnRequest( int &data,int &blk_Num,int &reqForm)
         //cout<<"\nwrite set free successful";
    }
    else if(reqForm==5)
-   { cout<<"reached display\n";
+   { //cout<<"reached display\n";
      display();
 
-        cout<<"\ndisplay successful";
+        //cout<<"\ndisplay successful";
    }
 
 
@@ -658,32 +683,32 @@ while(otherProcessActive)
     //sleep(1);
      //cout<<atomic_load(&data->state);
      };
- cout<<"--out";
+ //cout<<"--out";
  
   
   state=atomic_load(&data->state);
-  cout<<"state was "<<state<<endl;
-  cout<<"Messege recieved : ["<<data->data<<","<<data->blk_Num<<","<<data->reqForm<<"]";
+  //cout<<"state was "<<state<<endl;
+  //cout<<"Messege recieved : ["<<data->data<<","<<data->blk_Num<<","<<data->reqForm<<"]";
   if(data->reqForm ==-1)
     {otherProcessActive = false; continue;}
  /* cout<<"displayed before req: \n";
   buf.display(); */
   buf.actOnRequest(data->data,data->blk_Num,data->reqForm);
-  cout<<"displayed after req: \n";
+  //cout<<"displayed after req: \n";
   buf.display(); 
    req= data->reqForm;
    state =atomic_load(&data->state);
-   cout<<"state was- "<<state<<endl;
+   //cout<<"state was- "<<state<<endl;
   
    if (req>0)//if not read request release for next process
      { data->data = 0;
        data->blk_Num = -1;
        data->reqForm = -1;
-      cout<<"Messege Sent : ["<<data->data<<","<<data->blk_Num<<","<<data->reqForm<<"]";
+      //cout<<"Messege Sent : ["<<data->data<<","<<data->blk_Num<<","<<data->reqForm<<"]";
       atomic_store(&data->state, 4 );
     }
    else
-    {  cout<<"Messege Sent : ["<<data->data<<","<<data->blk_Num<<","<<data->reqForm<<"]";
+    {  //cout<<"Messege Sent : ["<<data->data<<","<<data->blk_Num<<","<<data->reqForm<<"]";
       atomic_store(&data->state, 6); }
       
    } ;

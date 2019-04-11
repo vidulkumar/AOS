@@ -96,17 +96,17 @@ int main() {
         goto l0;
       }
 
-    printf("Block acquired\n");
+    printf("Memory acquired\n");
     readandLock(data->blk_Num,data->reqForm,blockNumber); // messege Written 
    
 
-    cout<<"Messege sent : ["<<data->data<<","<<data->blk_Num<<","<<data->reqForm<<"]";
+    //cout<<"Messege sent : ["<<data->data<<","<<data->blk_Num<<","<<data->reqForm<<"]";
    atomic_store(&data->state,5); //Messege Sent mem released
    
   while (atomic_load(&data->state) != 6) { } //Wait for reply
     dat = data->data;
 
-   cout<<"Messege recv : ["<<data->data<<","<<data->blk_Num<<","<<data->reqForm<<"]";
+   //cout<<"Messege recv : ["<<data->data<<","<<data->blk_Num<<","<<data->reqForm<<"]";
    req=data->reqForm;
    if(req==-2)
     {cout<<"block not available"; }
@@ -115,7 +115,8 @@ int main() {
     atomic_store(&data->state, 4); //release mem to all other requesting process
 
     if(req==-2)
-     {sleep(30);
+     { cout<<"\nsleeping...";
+      sleep(10);
       goto l0; }
    l5 :
    cout<<"-----Menu----\n";
