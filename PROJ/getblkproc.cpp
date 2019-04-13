@@ -186,12 +186,12 @@ void Buffer::insertBlock( BufferBlock* &temp,int mod=1)
 void Buffer::display()
 
 {
-    cout<<"\n======================================\n";
+     cout<<"\n=========BUFFER====[data,block_num,free]=============\n";
     cout <<"Q0 :";displayQueue(0);
     cout <<"Q1 :";displayQueue(1);
     cout <<"Q2 :";displayQueue(2);
     cout <<"Q3 :";displayQueue(3);
-
+    cout <<"FL :";
     struct BufferBlock *s;
 
     if (freeList == freeListEnd && freeList == NULL)
@@ -215,7 +215,7 @@ void Buffer::display()
    };
 
     cout<<" ["<<s->data<<","<<s->diskBlockNum<<","<<s->isFree<<"]"<<endl;
-    cout<<"\n=========================================\n";
+    cout<<"========================================================\n";
 }
 
 int Buffer::countFreeBuffer()
@@ -491,12 +491,7 @@ BufferBlock* Buffer :: searchBlkInHq(int diskBlkNum)
                         //cout<<"block to be removed0 :"<<temp->data<<endl;
                          cout<<"lock this block\n";
                          removeFromFreeList(temp);
-                         /*
-                         temp->previousInFreeList->nextInFreeList = temp ->nextInFreeList;
-                         temp->nextInFreeList->previousInFreeList = temp ->previousInFreeList;
-                         temp->nextInFreeList=NULL;
-                         temp->previousInFreeList=NULL;
-                         */
+
                          return temp;
                      }
                      else
@@ -634,6 +629,7 @@ void Buffer :: actOnRequest( int &data,int &blk_Num,int &reqForm)
        if(temp!=NULL)
        {
         temp->data = data;
+        temp->dataWritten=false;
         insertBlock(temp);
 
         //cout<<"\nupdate and set free successful";
@@ -644,6 +640,7 @@ void Buffer :: actOnRequest( int &data,int &blk_Num,int &reqForm)
    {
     temp = searchBlkInHq(blk_Num);
     temp->data = data;
+    temp->dataWritten=false;
     bwrite(temp);
 
         //cout<<"\nwrite set free successful";
@@ -672,7 +669,7 @@ int main()
     cout<<"\n display buffer : \n";
     buf.display();
    
-    cout<<"\nnumber of free blocks :"<<buf.countFreeBuffer();
+    cout<<"\nnumber of free blocks :"<<buf.countFreeBuffer()<<endl;
    //Creating a message queue
     key = getuid();
     
@@ -696,6 +693,8 @@ int main()
   data=msg.data[0];
   blk_Num=msg.data[1];
   reqForm=msg.data[2];
+  if(reqForm==6)
+           {exit(0);}
   cout<<"["<<msg.to<<","<<msg.from<<","<<data<<","<<blk_Num<<","<<reqForm<<"]";
   rf=reqForm;
   buf.actOnRequest(data,blk_Num,reqForm);
@@ -707,6 +706,7 @@ int main()
            msg.data[0]=data;
            msg.data[1]=blk_Num;
            msg.data[2]=reqForm;
+           
            cout<<"["<<msg.to<<","<<msg.from<<","<<data<<","<<blk_Num<<","<<reqForm<<"]";
            if(msgsnd(mid, ( MESSAGE*)&msg, sizeof(msg.data), 0)==-1){
               perror("msgsnd");
