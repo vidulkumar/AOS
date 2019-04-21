@@ -166,7 +166,7 @@ void Buffer::insertBlock( BufferBlock* &temp,int mod=1)
         cout<<". ";
 
     }
-    else  {
+    else  { // when mod is 2
          //cout<<"executing case 2";
         temp->nextInFreeList = freeList;
         temp->previousInFreeList = freeListEnd;
@@ -209,12 +209,12 @@ void Buffer::display()
    while(s!=freeListEnd)
    {
     
-    cout<<" ["<<s->data<<","<<s->diskBlockNum<<","<<s->isFree<<"]";
+    cout<<" ["<<s->data<<","<<s->diskBlockNum<<","<<s->isFree<<","<<s->dataWritten<<"]";
     s=s->nextInFreeList;
     //sleep(1);
    };
 
-    cout<<" ["<<s->data<<","<<s->diskBlockNum<<","<<s->isFree<<"]"<<endl;
+    cout<<" ["<<s->data<<","<<s->diskBlockNum<<","<<s->isFree<<","<<s->dataWritten<<"]"<<endl;
     cout<<"========================================================\n";
 }
 
@@ -259,11 +259,11 @@ void Buffer::displayQueue(int queueNum)
       {
         while(temp->nextBlock!=NULL)
         {
-             cout<<" ["<<temp->data<<","<<temp->diskBlockNum<<","<<temp->isFree<<"]";
+             cout<<" ["<<temp->data<<","<<temp->diskBlockNum<<","<<temp->isFree<<","<<temp->dataWritten<<"]";
              temp=temp->nextBlock;
              sleep(1);
         };
-          cout<<" ["<<temp->data<<","<<temp->diskBlockNum<<","<<temp->isFree<<"]"<<endl;
+           cout<<" ["<<temp->data<<","<<temp->diskBlockNum<<","<<temp->isFree<<","<<temp->dataWritten<<"]"<<endl;
 
       }
       return;
@@ -514,18 +514,50 @@ BufferBlock* Buffer :: searchBlkInHq(int diskBlkNum)
 
                          removeFromFreeList(freeBlock);
                          cout<<"remove a block from free list\n";
+                         
 
                          //scenario 3
                         // cout<<"\nreached to scenario 3:";
                          //cout<<"dataWritten: "<<freeBlock->dataWritten<<endl;
                          if(freeBlock->dataWritten != true)
-                         {
+                         {   
                              //write buffer to disk
-                             cout<<"delayed write case handled \n";
-                             bwrite(freeBlock,2);
-                             //cout<<"after executing delayed write case --";
-                           //  display();
-                             continue;
+                              cout<<"delayed write case handled \n";
+                              temp = freeList;
+                            if(temp->dataWritten==true && temp!=NULL) // if first was delaywrite
+                                {
+                                       bwrite(freeBlock,2);
+                                       system("gnome-terminal --command='./asy'");
+                                       sleep(2);
+                                       freeBlock = temp;
+                                       removeFromFreeList(freeBlock);
+                                   }
+ 
+                             else
+                               {
+                                  for(temp=freeList->nextInFreeList;temp!=freeList && temp->dataWritten!=true && temp!=NULL;temp=temp->nextInFreeList)
+                                    { }
+
+                             cout<<"after executing delayed write case --";
+                             cout<<" ["<<temp->data<<","<<temp->diskBlockNum<<","<<temp->isFree<<","<<temp->dataWritten<<"]"<<endl;
+                             //display();
+                            if(temp!=freeList && temp!=NULL)
+                            { bwrite(freeBlock,2);
+                              system("gnome-terminal --command='./asy'");
+                              sleep(2);
+                              freeBlock = temp;
+                              removeFromFreeList(freeBlock);
+                            } 
+                            else
+                            {  
+                              
+                              system("gnome-terminal --command='./asy'");
+                              bwrite(freeBlock,2);
+                              continue; }      
+
+                               }
+                             
+
                          }
                          //scenario 3
                          //remove Buffer from Old Hash Queue
@@ -575,10 +607,10 @@ BufferBlock* Buffer :: bread(int blockRNum)
         return block;
 
     else
-    {
+    {  sleep(2);
        block->diskBlockNum=blockRNum;
        block->data=Disk[blockRNum];    
-       block->dataWritten = false; 
+       block->dataWritten = true; 
     }
 
    return block;
@@ -586,7 +618,8 @@ BufferBlock* Buffer :: bread(int blockRNum)
 
 void Buffer :: bwrite(BufferBlock* block,int mod=1)
 {  //cout<<"Entered write ";
-   Disk[block->diskBlockNum]=block->data;
+   sleep(2);
+   Disk[block->diskBlockNum]=block->data; 
    block->dataWritten= true;
    if(mod==2)
    {
@@ -617,7 +650,7 @@ void Buffer :: actOnRequest( int &data,int &blk_Num,int &reqForm)
        if(temp!=NULL)
        {
          //cout<<"\nEntered set Free----\n";
-         temp->dataWritten=true;
+         //temp->dataWritten=true;
         insertBlock(temp);
         //cout<<"\nset free successful";
         //reqForm = 4;
@@ -717,7 +750,7 @@ int main()
                 waitQueue.push(client);
              }  
   }
-  else
+  else if(rf==1 || rf==2 || rf == 3)
   {
            while (!waitQueue.empty()) { 
            kill(waitQueue.front(),SIGUSR1); 

@@ -149,7 +149,19 @@ int main(int argc, char** argv) {
                        }
                        goto l5 ;
                     break;
-        case 5:     ch =5;
+        case 5:     
+                       cout<<"\nsending msg ...";
+                       msg.data[0] =-1;
+                       msg.data[1] =blockNumber;
+                       msg.data[2] = 1;
+                       msg.to = GPID;
+                       msg.from = MYPID;
+                       cout<<"["<<msg.to<<","<<msg.from<<","<<msg.data[0]<<","<<msg.data[1]<<","<<msg.data[2]<<"]";
+                       if(msgsnd(mid, &msg, sizeof(msg.data), 0)==-1){
+                           perror("msgsnd");
+                           exit(-1);
+                       }
+                       ch =5;
                     break;      
         case 6:    cout<<"sending msg ...";
                        msg.data[0] = dat;
